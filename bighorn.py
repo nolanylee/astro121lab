@@ -1,17 +1,9 @@
 import ugradio
 import numpy as np
+import pandas as pd
 
-def gather_data(local_o=1419.4e6, nsamples=2048, sample_rate=2.2e6, gain=1.0):
-    data = ugradio.sdr.capture_data_mixer(local_o, 
-        nsamples,
-        sample_rate,
-        gain)
-    fourier = np.fft.fft(data)
-    fourier_freq = np.fft.fftfreq(nsamples, 1/sample_rate)
-    fourier_shift = np.fft.fftshift(fourier)
-    fourier_freq_shift = np.fft.fftshift(fourier_freq)
-    return fourier_freq_shift, np.abs(fourier_shift)**2
-
+def gather_data(local_o=1420e6, nsamples=2048, nblocks=1000, sample_rate=2.2e6, gain=1.0):
+    
     """
     takes a digitally sampled signal via software defined radio (SDR) and
     returns the components needed to plot a power spectrum
@@ -22,6 +14,8 @@ def gather_data(local_o=1419.4e6, nsamples=2048, sample_rate=2.2e6, gain=1.0):
         frequency of our local oscillator
     nsamples : int
         number of samples in a given set of data
+    nblocks : int
+        number of blocks of data to be taken
     sample_rate : float
         sampling rate of the SDR
     gain : float
@@ -31,39 +25,121 @@ def gather_data(local_o=1419.4e6, nsamples=2048, sample_rate=2.2e6, gain=1.0):
     ---------
     fourier_freq_shift : array
         power spectrum frequencies of units Hz (x-axis)
-    np.abs(fourier_shift)**2 : array
+    power_spectrum : array
         power spectrum amplitudes of arbitrary units (y-axis)
+        averaged over the total number of blocks taken
     """
+    
+    data = ugradio.sdr.capture_data(direct=False,
+        center_freq=local_o, 
+        nsamples=nsamples,
+        nblocks=nblocks,
+        sample_rate=sample_rate,
+        gain=gain)
+    fourier = np.fft.fft(data)
+    fourier_freq = np.fft.fftfreq(nsamples, 1/sample_rate)
+    fourier_shift = np.fft.fftshift(fourier)
+    fourier_freq_shift = np.fft.fftshift(fourier_freq)
+    power_spectrum = np.mean(np.abs(fourier_shift)**2, axis=0)
+    return fourier_freq_shift, power_spectrum
 
-def gather_blocks(nblocks, local_o=1419.4e6, nsamples=2048, sample_rate=2.2e6):
-    data_blocks = np.empty((nblocks, nsamples))
-    for i in range(nblocks):
-        data = gather_data(local_o, nsamples, sample_rate)
-        data_blocks[i] = data[1]
-    return data[0], np.mean(data_blocks)
 
+
+def data2csv(title, data):
+    
     """
-    repeats the process in gather_data() in order to take the averaged power spectrum 
-    over multiple blocks of data
+    generates a data frame from the captured SDR data and saves it as a csv
     
     Arguments:
     -----------
-    nblocks : int
-        number of blocks to be taken
-    local_o : float
-        frequency of our local oscillator
-    nsamples : int
-        number of samples in a given set of data
-    sample_rate : float
-        sampling rate of the SDR
-    gain : float
-        applied gain to the sampled signal
+    title : string
+        title of the saved csv
+    data : tuple
+        captured SDR data, the indices of which will serve as columns
     
     Returns: 
     ---------
-    data[0] : array
-        power spectrum frequencies of units Hz (x-axis)
-    np.mean(data_blocks) : float
-        averaged power spectrum amplitudes of arbitrary units (y-axis)
+    title.csv : 
+        saved data frame of the captured data in csv format (see astro121lab file)
     """
-        
+    
+    df = pd.DataFrame({'f': data[0], 'a': data[1]})
+    return df.to_csv('/home/pi/astro121lab/'+title+'.csv')
+
+
+def S_line(s_cal, s_cold):
+    
+    """
+    removes the instrumental bandpass by taking the ratio b/n s_cal and s_cold
+    
+    Arguments:
+    -----------
+    s_cal : array
+        calibrated data taken in the presence of an ideal blackbody (cole)
+    s_cold : array
+        data taken when pointed at the cold sky
+    
+    Returns: 
+    ---------
+    s_line : array
+        the shape of our spectral line (not the intensity)
+    """
+    
+    s_line = s_cold / s_cal
+    return s_line
+
+
+
+def gain(T_cal=300, s_cal, s_cold):
+    
+    """
+    generates a data frame from the captured SDR data and saves it as a csv
+    
+    Arguments:
+    -----------
+    T_cal : float
+        calibration temperature ie the thermal power injected into the telescope
+        by an ideal blackbody
+    s_cal : array
+        calibrated data taken in the presence of an ideal blackbody
+    s_cold : array
+        data taken when pointed at the cold sky
+    
+    Returns: 
+    ---------
+    g : float
+        the gain of our spectrum
+    """
+    
+    sum_cold = sum(s_cold)
+    sum_diff = sum(s_cal-s_cold)
+    g = T_cal/sum_diff*sum_cold
+    return g
+
+
+
+def T_line(T_cal, s_cold, s_cold):
+    
+    """
+    calculates the intensity calibrated spectrum T_line
+    
+    Arguments:
+    -----------
+    T_cal : float
+        calibration temperature ie the thermal power injected into the telescope
+        by an ideal blackbody
+    s_cal : array
+        calibrated data taken in the presence of an ideal blackbody
+    s_cold : array
+        data taken when pointed at the cold sky
+    
+    Returns: 
+    ---------
+    t_line : array
+        the final intensity calibrated spectrum
+    """
+    
+    s_line = bighorn.S_line(s_cal, s_cold)
+    gain = bighorn.gain(T_cal, s_cal, s_cold)
+    t_line = s_line*gain
+    return t_line
