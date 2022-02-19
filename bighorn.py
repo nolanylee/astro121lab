@@ -45,6 +45,16 @@ def gather_data(local_o=1420e6, nsamples=2048, nblocks=1000, sample_rate=2.2e6, 
 
 
 
+def fourier_data(data):
+    fourier = np.fft.fft(data)
+    fourier_freq = np.fft.fftfreq(nsamples, 1/sample_rate)
+    fourier_shift = np.fft.fftshift(fourier)
+    fourier_freq_shift = np.fft.fftshift(fourier_freq)
+    power_spectrum = np.mean(np.abs(fourier_shift)**2, axis=0)
+    return fourier_freq_shift, power_spectrum
+
+
+
 def data2csv(title, data):
     
     """
