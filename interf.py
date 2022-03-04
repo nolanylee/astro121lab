@@ -2,6 +2,7 @@ import ugradio
 import numpy as np
 import astropy
 import scipy
+import pandas as pd
 
 #figure out proper coord convsersion b/n ra,dec and az,alt
 #apply these conversions for the moon's pos in the night sky
@@ -45,9 +46,11 @@ def moon_point():
 # stop collecting data when finished (when?)
 # stow telescopes
 
-def observe():
+def observe(title):
     ifm = ugradio.interf.Interferometer()
     hpm = ugradio.hp_multi.HP_Multimeter()
+    moon_alt, moon_az = moon_point()
+    ifm.point(moon_alt, moon_az)
     hpm.start_recording(10)
     all_voltages = []
     all_times = []
@@ -66,4 +69,5 @@ def observe():
         all_times.append(times)
     hpm.end_recording()
     ifm.stow()
-    np.savez('observing_data', all_voltages=all_voltages, all_times=all_times)
+    df = pd.DataFrame({'all_voltages': all_voltages, 'all_times': all_times})
+    df.to_csv('/home/pi/astro121lab/'+title+'.csv')
