@@ -37,16 +37,22 @@ def moon_point():
 # stop collecting data when finished (when?)
 # stow telescopes
 
-def observe(title):
+def observe_moon(title):
+
     ifm = ugradio.interf.Interferometer()
     hpm = ugradio.hp_multi.HP_Multimeter()
+
     moon_alt, moon_az = moon_point()
+    print('Moving interferometers to initial position')
     ifm.point(moon_alt, moon_az)
     hpm.start_recording(10)
+
     for i in range(5):
         moon_alt, moon_az = moon_point()
+        print('Tracking moon position '+i+'/5')
         ifm.point(moon_alt, moon_az)
         time.sleep(12.)
+
     hpm.end_recording()
     ifm.stow()
     all_voltages, all_times = hpm.get_recording_data()
