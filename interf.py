@@ -3,6 +3,7 @@ import numpy as np
 import astropy
 import scipy
 import pandas as pd
+import time
 
 #figure out proper coord convsersion b/n ra,dec and az,alt
 #apply these conversions for the moon's pos in the night sky
@@ -37,24 +38,38 @@ def moon_point():
 # stop collecting data when finished (when?)
 # stow telescopes
 
-def observe_moon(title):
-
-    ifm = ugradio.interf.Interferometer()
-    hpm = ugradio.hp_multi.HP_Multimeter()
-
-    moon_alt, moon_az = moon_point()
-    print('Moving interferometers to initial position')
-    ifm.point(moon_alt, moon_az)
-    hpm.start_recording(10)
-
-    for i in range(5):
-        moon_alt, moon_az = moon_point()
-        print('Tracking moon position '+i+'/5')
-        ifm.point(moon_alt, moon_az)
-        time.sleep(12.)
+def terminate(title, ifm, hpm):
 
     hpm.end_recording()
     ifm.stow()
     all_voltages, all_times = hpm.get_recording_data()
     df = pd.DataFrame({'all_voltages': all_voltages, 'all_times': all_times})
-    df.to_csv('/home/pi/astro121lab/'+title+'.csv')
+    df.to_csv('./'+title+'.csv')
+
+def initialize(dt, ifm, hpm):
+
+    moon_alt, moon_az = moon_point()
+    ifm.point(moon_alt, moon_az)
+    hpm.start_recording(6)
+
+def observe_moon(title, dt):
+
+    ifm = ugradio.interf.Interferometer()
+    hpm = ugradio.hp_multi.HP_Multimeter()
+
+    print('Initializing script')
+    initialize(dt, ifm, hpm)
+
+    for i in range(5*dt):
+        moon_alt, moon_az = moon_point()
+        print(f'Repositioning for {i=}')
+        try:
+            ifm.point(moon_alt, moon_az)
+        except AssertionError as e:
+            print(e)
+            print(f'YOU FOOL: script errored out at {i=}')
+            break
+        time.sleep(12)
+
+    print('Terminating script')
+    terminate(title, ifm, hpm)
