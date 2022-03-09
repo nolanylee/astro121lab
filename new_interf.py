@@ -45,3 +45,14 @@ def observe(ra, dec, steps, dt, title):
 
     print('Terminating observation')
     terminate(title)
+  
+def f_transform(data):
+    
+    fourier = np.fft.fft(data)
+    fourier_freq = np.fft.fftfreq(len(data), 1/(10.7))
+    fourier_shift = np.fft.fftshift(fourier)
+    fourier_freq_shift = np.fft.fftshift(fourier_freq)
+    power_spectrum = np.abs(fourier_shift)**2
+    
+    return fourier_freq_shift, power_spectrum
+
