@@ -51,7 +51,7 @@ def observe(ra, dec, steps, dt, title):
         finally:
             voltages, times = hpm.get_recording_data()
             df = pd.DataFrame({'Voltages': voltages, 'Times': times})
-            df.to_csv('/home/crforrester/astro121lab/'+title+'.csv', mode='w')
+            df.to_csv('./'+title+'.csv', mode='w')
         time.sleep(dt)
 
     print('Terminating observation')
