@@ -3,8 +3,13 @@ import numpy as np
 import pandas as pd
 import time
 
-ifm = ugradio.interf.Interferometer()
-hpm = ugradio.hp_multi.HP_Multimeter()
+def time2deg(hour, minute, second):
+
+    deg_h = hour*360/24
+    deg_m = minute*360/24/60
+    deg_s = second*360/24/3600
+
+    return deg_h + deg_m + deg_s
 
 def altaz_point(ra, dec):
 
@@ -13,38 +18,44 @@ def altaz_point(ra, dec):
 
     return alt, az
 
-def initialize(ra, dec, dt):
+def initialize(ra, dec, dt, ifm, hpm):
 
     alt, az = altaz_point(ra, dec)
     ifm.point(alt, az)
-    hpm.start_recording(dt)
+    hpm.start_recording(dt/2)
 
-def terminate(title):
+def terminate(title, ifm, hpm):
     
     hpm.end_recording()
     voltages, times = hpm.get_recording_data()
     df = pd.DataFrame({'Voltages': voltages, 'Times': times})
-    df.to_csv('./'+title+'.csv')
+    df.to_csv('./'+title+'.csv', mode = 'w')
     ifm.stow()
     
 def observe(ra, dec, steps, dt, title):
 
+    ifm = ugradio.interf.Interferometer()
+    hpm = ugradio.hp_multi.HP_Multimeter()
+
     print('Initializing observation...')
-    initialize(ra, dec, dt)
+    initialize(ra, dec, dt, ifm, hpm)
 
     for i in range(steps):
         alt, az = altaz_point(ra, dec)
-        print(f'Repositioning to coordinates {alt, az}')
+        print(f'Repositioning to coordinates {alt, az}...')
         try:
             ifm.point(alt, az)
-        except AssertionError as e:
-            print(e)
-            print('YOU FOOL: script errored out at {i=}')
+        except (AssertionError, TimeoutError):
+            print(f'YOU FOOL: script errored out at {i=}')
             break
+        finally:
+            voltages, times = hpm.get_recording_data()
+            df = pd.DataFrame({'Voltages': voltages, 'Times': times})
+            df.to_csv('/home/crforrester/astro121lab/'+title+'.csv', mode='w')
         time.sleep(dt)
 
     print('Terminating observation')
-    terminate(title)
+    terminate(title, ifm, hpm)
   
 def f_transform(data):
     
