@@ -43,7 +43,7 @@ def bubble_obs(l, b, nspec):
             print('Activating noise diode...')
             noise.on()
             print('Gathering spectra (diode on)')
-            spectrometer.read_spec(f'{jd}_nd1.fits', nspec, (l,b), 'ga')
+            spectrometer.read_spec(f'{jd}_nd1.fits', 0.1*nspec, (l,b), 'ga')
             print('Deactivating noise diode')
             noise.off()
             print('Gathering Spectra (diode off)')
