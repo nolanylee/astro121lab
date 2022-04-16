@@ -50,7 +50,7 @@ def bubble_obs(l, b, nspec):
             spectrometer.read_spec(f'{jd}_nd0.fits', nspec, (l,b), 'ga')
         except AssertionError:
             print('YOU FOOL: You failed to point the telescope')
-            break
+            continue
     
     print('Stowing telescope')
     telescope.stow()
