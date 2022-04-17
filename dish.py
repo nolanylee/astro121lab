@@ -24,7 +24,7 @@ def gal2altaz(l, b):
     altaz_coord = gal_coord.transform_to(altaz_frame)
     return altaz_coord.alt, altaz_coord.az
 
-def bubble_obs(l, b, nspec):
+def bubble_obs(nspec, index):
 
     telescope = ugradio.leusch.LeuschTelescope()
     spectrometer = ugradio.leusch.Spectrometer()
@@ -34,26 +34,38 @@ def bubble_obs(l, b, nspec):
 
     for i in len(coords):
 
-        l, b = coords[i]
+        if index == 'odd':
+            j = 2*i + 1
+        elif index == 'even':
+            j = 2*i
+        elif: index == 'all':
+            j = i
+        else:
+            print('Please specify the indices you wish to observe (odd, even, or all)')
+            break
+
+        l, b = coords[j]
         alt, az = gal2altaz(l,b)
 
-        print(f'Pointing to coordinates {alt, az...}')
+        print(f'Pointing to coordinates {l, b}...')
         try:
             telescope.point(alt, az)
             print('Activating noise diode...')
             noise.on()
-            print('Gathering spectra (diode on)')
-            spectrometer.read_spec(f'{jd}_nd1.fits', 0.1*nspec, (l,b), 'ga')
-            print('Deactivating noise diode')
+            print('Gathering spectra (diode on)...')
+            spectrometer.read_spec(f'{j}_nd1.fits', 0.1*nspec, (l,b), 'ga')
+            print('Deactivating noise diode...')
             noise.off()
-            print('Gathering Spectra (diode off)')
-            spectrometer.read_spec(f'{jd}_nd0.fits', nspec, (l,b), 'ga')
+            print('Gathering Spectra (diode off)...')
+            spectrometer.read_spec(f'{j}_nd0.fits', nspec, (l,b), 'ga')
         except AssertionError:
-            print('YOU FOOL: You failed to point the telescope')
+            print(f'YOU FOOL: You failed to point the telescope (coordinates {l, b})')
+            print('Resuming observation...')
             continue
     
-    print('Stowing telescope')
+    print('Finished collecting data: stowing telescope...')
     telescope.stow()
+    print('Observation complete!')
 
 
     
