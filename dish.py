@@ -38,7 +38,7 @@ def bubble_obs(nspec, index):
             j = 2*i + 1
         elif index == 'even':
             j = 2*i
-        elif: index == 'all':
+        elif index == 'all':
             j = i
         else:
             print('Please specify the indices you wish to observe (odd, even, or all)')
